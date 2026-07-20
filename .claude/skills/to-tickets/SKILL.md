@@ -62,7 +62,18 @@ Iterate until the user approves the breakdown.
 Publish the approved tickets. **How** depends on the tracker configured — the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below — one ticket per file, never a single combined file.
-- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `ready-for-agent` triage label to each child ticket. Apply the `ticketed` label to the **parent** issue to advance the pipeline stage. Remove the `spec` label from the parent if present.
+- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers.
+
+  **GitHub sub-issues (required):** After creating each child issue, you MUST add it as a sub-issue of the parent using the GitHub CLI:
+  ```bash
+  # Get the child issue's global ID (not the issue number)
+  CHILD_ID=$(gh api repos/{owner}/{repo}/issues/{child_number} --jq '.id')
+  # Add it as a sub-issue of the parent
+  gh api repos/{owner}/{repo}/issues/{parent_number}/sub_issues --method POST --input - <<< "{\"sub_issue_id\": $CHILD_ID}"
+  ```
+  This creates a native parent-child hierarchy visible on GitHub and queryable via the API.
+
+  Apply the `ready-for-agent` triage label to each child ticket. Apply the `ticketed` label to the **parent** issue to advance the pipeline stage. Remove the `spec` label from the parent if present.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 
