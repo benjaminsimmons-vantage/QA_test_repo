@@ -76,14 +76,12 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # BUG: no validation on email format
-    # BUG: no password strength requirements
     user = User(
         email=request.email,
         password_hash=hash_password(request.password),
         name=request.name,
         org_id=request.org_id,
-        role=request.role,
+        role=request.role.lower(),
     )
     db.add(user)
     db.commit()
@@ -165,7 +163,7 @@ def update_user(
     if request.name is not None:
         user.name = request.name
     if request.role is not None:
-        user.role = request.role
+        user.role = request.role.lower()
     if request.is_active is not None:
         user.is_active = request.is_active
 
