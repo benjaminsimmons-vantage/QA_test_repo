@@ -83,7 +83,7 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
         password_hash=hash_password(request.password),
         name=request.name,
         org_id=request.org_id,
-        role=request.role,
+        role=(request.role or "rep").lower(),
     )
     db.add(user)
     db.commit()
@@ -152,8 +152,7 @@ def update_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # BUG: checks for lowercase "admin" but seed data stores "Admin"
-    if current_user.role != "admin" and current_user.id != user_id:
+    if current_user.role.lower() != "admin" and current_user.id != user_id:
         raise HTTPException(status_code=403, detail="Cannot update other users")
 
     user = db.query(User).filter(User.id == user_id).first()
@@ -165,7 +164,7 @@ def update_user(
     if request.name is not None:
         user.name = request.name
     if request.role is not None:
-        user.role = request.role
+        user.role = request.role.lower()
     if request.is_active is not None:
         user.is_active = request.is_active
 
