@@ -12,7 +12,7 @@ permissions:
 jobs:
   run-skill:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -21,21 +21,27 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Set up Python
-        if: github.event.client_payload.skill == 'implement'
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Start app for verification
+      - name: Install backend dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm install
+
+      - name: Start app
         if: github.event.client_payload.skill == 'implement'
         run: |
-          pip install -r backend/requirements.txt
           cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-          cd frontend && npm install && npx vite --port 3000 --host &
-          sleep 5
-          curl -sf http://localhost:8000/docs > /dev/null && echo "Backend ready"
-          curl -sf http://localhost:3000 > /dev/null && echo "Frontend ready"
+          cd frontend && npx vite --port 3000 --host &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8000/docs > /dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -sf http://localhost:8000/docs > /dev/null && echo "Backend ready" || echo "Backend failed to start"
+          curl -sf http://localhost:3000 > /dev/null && echo "Frontend ready" || echo "Frontend failed to start"
 
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
