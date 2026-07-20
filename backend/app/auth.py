@@ -61,8 +61,7 @@ def get_current_user(
 
 def require_role(required_role: str):
     def role_checker(current_user: User = Depends(get_current_user)):
-        # BUG: case-sensitive comparison — seed data has "Admin" but checks for "admin"
-        if current_user.role != required_role:
+        if current_user.role.lower() != required_role.lower():
             raise HTTPException(
                 status_code=403, detail="Insufficient permissions"
             )
@@ -72,8 +71,7 @@ def require_role(required_role: str):
 
 def require_any_role(*roles):
     def role_checker(current_user: User = Depends(get_current_user)):
-        # BUG: same case-sensitivity issue propagated here
-        if current_user.role not in roles:
+        if current_user.role.lower() not in [r.lower() for r in roles]:
             raise HTTPException(
                 status_code=403, detail="Insufficient permissions"
             )
