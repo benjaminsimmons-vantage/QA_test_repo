@@ -21,6 +21,22 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Set up Python
+        if: github.event.client_payload.skill == 'implement'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Start app for verification
+        if: github.event.client_payload.skill == 'implement'
+        run: |
+          pip install -r backend/requirements.txt
+          cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          cd frontend && npm install && npx vite --port 3000 --host &
+          sleep 5
+          curl -sf http://localhost:8000/docs > /dev/null && echo "Backend ready"
+          curl -sf http://localhost:3000 > /dev/null && echo "Frontend ready"
+
       - name: Install Claude Code
         run: npm install -g @anthropic-ai/claude-code
 
