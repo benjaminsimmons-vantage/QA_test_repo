@@ -83,7 +83,7 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
         password_hash=hash_password(request.password),
         name=request.name,
         org_id=request.org_id,
-        role=request.role.lower(),
+        role=(request.role or "rep").lower(),
     )
     db.add(user)
     db.commit()
