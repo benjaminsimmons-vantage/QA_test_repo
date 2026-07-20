@@ -7,7 +7,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  issues: read
+  issues: write
 
 jobs:
   run-skill:
@@ -34,7 +34,7 @@ jobs:
           ANTHROPIC_DEFAULT_HAIKU_MODEL: claude-haiku-4-5
           DISABLE_AUTOUPDATER: "1"
         run: |
-          claude -p "Run /${{ github.event.client_payload.skill }} on issue #${{ github.event.client_payload.issue_number }}" \
+          claude -p "Run /${{ github.event.client_payload.skill }} on issue #${{ github.event.client_payload.issue_number }}. This is an automated CI run — do not wait for user confirmation. Apply labels, write briefs, publish specs/tickets, and commit code directly." \
             --model opus \
             --dangerously-skip-permissions \
             --output-format json
