@@ -8,6 +8,8 @@ This skill takes the current conversation context and codebase understanding and
 
 The issue tracker and triage label vocabulary should have been provided to you — check `docs/agents/issue-tracker.md` and `docs/agents/triage-labels.md`.
 
+**Scope boundary:** Do NOT create branches, commit code, or write fixes. Your output is the spec published to the issue tracker plus a `spec` label — nothing else touches the codebase.
+
 ## Process
 
 1. Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout the spec, and respect any ADRs in the area you're touching.
@@ -16,7 +18,7 @@ The issue tracker and triage label vocabulary should have been provided to you �
 
 Check with the user that these seams match their expectations.
 
-3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
+3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `spec` label to the issue to advance the pipeline stage. Remove the `ready-for-agent` label if present — the issue is now spec'd, not awaiting triage.
 
 <spec-template>
 

@@ -10,6 +10,8 @@ Break a plan, spec, or conversation into a set of **tickets** — tracer-bullet 
 
 The issue tracker and triage label vocabulary should have been provided to you — check `docs/agents/issue-tracker.md` and `docs/agents/triage-labels.md`.
 
+**Scope boundary:** Do NOT create branches or commit code. Your output is tickets published to the issue tracker plus a `ticketed` label on the parent issue — nothing else touches the codebase.
+
 ## Process
 
 ### 1. Gather context
@@ -60,7 +62,7 @@ Iterate until the user approves the breakdown.
 Publish the approved tickets. **How** depends on the tracker configured — the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below — one ticket per file, never a single combined file.
-- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `ready-for-agent` triage label unless instructed otherwise — the tickets are agent-grabbable by construction.
+- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking / sub-issue relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `ready-for-agent` triage label to each child ticket. Apply the `ticketed` label to the **parent** issue to advance the pipeline stage. Remove the `spec` label from the parent if present.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 

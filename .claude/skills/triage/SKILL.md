@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 Move issues on the project issue tracker through a small state machine of triage roles.
 
+**Scope boundary:** Triage is analysis only. Do NOT create branches, commit code, or write fixes. Your output is labels and comments on the issue tracker — nothing else touches the codebase.
+
 If this repo treats external pull requests as a request surface (see the issue-tracker config), triage covers them too: **a PR is an issue with attached code** — same roles, same states, same machine, with a few deltas marked "for a PR" below. Resolve a bare `#42` to an issue or PR per the tracker config.
 
 Every comment or issue posted to the issue tracker during triage **must** start with this disclaimer:
