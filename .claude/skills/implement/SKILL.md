@@ -47,8 +47,6 @@ Use /tdd where possible, at pre-agreed seams.
 
 Run the full test suite once all sub-issues are implemented.
 
-Once done, use /code-review to review the work.
-
 ### 6. Open one PR
 
 Open a single pull request from the branch. The PR body should:
