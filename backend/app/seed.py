@@ -22,12 +22,11 @@ def seed_database():
     db.refresh(org1)
     db.refresh(org2)
 
-    # Users — BUG: role casing inconsistent ("Admin" vs "admin" expected by auth checks)
     users = [
         User(email="admin@acme.com", password_hash=hash_password("admin123"),
-             name="Alice Admin", role="Admin", org_id=org1.id),
+             name="Alice Admin", role="admin", org_id=org1.id),
         User(email="manager@acme.com", password_hash=hash_password("manager123"),
-             name="Bob Manager", role="Manager", org_id=org1.id),
+             name="Bob Manager", role="manager", org_id=org1.id),
         User(email="rep1@acme.com", password_hash=hash_password("rep123"),
              name="Charlie Rep", role="rep", org_id=org1.id),
         User(email="rep2@acme.com", password_hash=hash_password("rep123"),
@@ -37,7 +36,7 @@ def seed_database():
              name="Eve Inactive", role="rep", org_id=org1.id, is_active=0),
         # Different org users
         User(email="admin@globex.com", password_hash=hash_password("admin123"),
-             name="Frank Admin", role="Admin", org_id=org2.id),
+             name="Frank Admin", role="admin", org_id=org2.id),
         User(email="rep@globex.com", password_hash=hash_password("rep123"),
              name="Grace Rep", role="rep", org_id=org2.id),
     ]

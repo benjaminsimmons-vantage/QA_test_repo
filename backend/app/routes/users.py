@@ -83,7 +83,7 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
         password_hash=hash_password(request.password),
         name=request.name,
         org_id=request.org_id,
-        role=request.role,
+        role=request.role.lower(),
     )
     db.add(user)
     db.commit()
@@ -164,7 +164,7 @@ def update_user(
     if request.name is not None:
         user.name = request.name
     if request.role is not None:
-        user.role = request.role
+        user.role = request.role.lower()
     if request.is_active is not None:
         user.is_active = request.is_active
 
