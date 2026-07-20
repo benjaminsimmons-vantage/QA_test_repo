@@ -1,0 +1,36 @@
+name: QA Agent - Run Skill
+
+on:
+  repository_dispatch:
+    types: [run-skill]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+
+jobs:
+  run-skill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run skill
+        env:
+          CLAUDE_CODE_USE_FOUNDRY: "1"
+          ANTHROPIC_FOUNDRY_RESOURCE: ${{ secrets.ANTHROPIC_FOUNDRY_RESOURCE }}
+          ANTHROPIC_FOUNDRY_API_KEY: ${{ secrets.ANTHROPIC_FOUNDRY_API_KEY }}
+          DISABLE_AUTOUPDATER: "1"
+        run: |
+          claude -p "Run /${{ github.event.client_payload.skill }} on issue #${{ github.event.client_payload.issue_number }}" \
+            --dangerously-skip-permissions \
+            --output-format json
