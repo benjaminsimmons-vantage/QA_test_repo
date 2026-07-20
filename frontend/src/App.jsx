@@ -10,6 +10,7 @@ import DealDetail from './components/DealDetail'
 import UserManagement from './components/UserManagement'
 import ActivityFeed from './components/ActivityFeed'
 import Navbar from './components/Navbar'
+import FeedbackButton from './components/FeedbackButton'
 
 function ProtectedRoute({ children, requiredRole }) {
   const { user, loading } = useAuth()
@@ -68,6 +69,7 @@ export default function App() {
           {/* BUG: no 404 catch-all route */}
         </Routes>
       </main>
+      <FeedbackButton />
     </div>
   )
 }

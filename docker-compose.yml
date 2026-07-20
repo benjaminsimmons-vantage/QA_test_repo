@@ -1,0 +1,20 @@
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+      - /app/venv
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
