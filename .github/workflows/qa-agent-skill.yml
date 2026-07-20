@@ -29,8 +29,12 @@ jobs:
           CLAUDE_CODE_USE_FOUNDRY: "1"
           ANTHROPIC_FOUNDRY_RESOURCE: ${{ secrets.ANTHROPIC_FOUNDRY_RESOURCE }}
           ANTHROPIC_FOUNDRY_API_KEY: ${{ secrets.ANTHROPIC_FOUNDRY_API_KEY }}
+          ANTHROPIC_DEFAULT_OPUS_MODEL: claude-opus-4-6
+          ANTHROPIC_DEFAULT_SONNET_MODEL: claude-sonnet-4-6
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: claude-haiku-4-5
           DISABLE_AUTOUPDATER: "1"
         run: |
           claude -p "Run /${{ github.event.client_payload.skill }} on issue #${{ github.event.client_payload.issue_number }}" \
+            --model opus \
             --dangerously-skip-permissions \
             --output-format json
