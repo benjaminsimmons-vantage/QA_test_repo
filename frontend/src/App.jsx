@@ -23,8 +23,7 @@ function ProtectedRoute({ children, requiredRole }) {
     return <Navigate to="/login" />
   }
 
-  // BUG: role check uses case-sensitive comparison, but roles from API may vary in casing
-  if (requiredRole && user.role !== requiredRole) {
+  if (requiredRole && user.role?.toLowerCase() !== requiredRole.toLowerCase()) {
     return <div className="error-page">Access Denied: Requires {requiredRole} role</div>
   }
 
