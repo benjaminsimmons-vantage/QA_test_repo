@@ -18,9 +18,9 @@ export default function Navbar() {
         <Link to="/pipeline" className={isActive('/pipeline')}>Pipeline</Link>
         <Link to="/contacts" className={isActive('/contacts')}>Contacts</Link>
         <Link to="/activities" className={isActive('/activities')}>Activities</Link>
-        {/* BUG: shows "Users" link to everyone but the route requires admin role */}
-        {/* No role check here means non-admins see the link but get "Access Denied" */}
-        <Link to="/users" className={isActive('/users')}>Users</Link>
+        {user?.role?.toLowerCase() === 'admin' && (
+          <Link to="/users" className={isActive('/users')}>Users</Link>
+        )}
       </div>
       <div className="nav-user">
         <span className="user-info">{user?.name} ({user?.role})</span>
