@@ -43,8 +43,15 @@ export default function ContactList() {
 
     try {
       await api.deleteContact(contactId)
-      // BUG: removes from local state but doesn't update total count
       setContacts(prev => prev.filter(c => c.id !== contactId))
+      setTotal(prev => {
+        const newTotal = prev - 1
+        const newPageCount = Math.ceil(newTotal / PER_PAGE) || 1
+        if (page > newPageCount) {
+          setPage(Math.max(1, newPageCount))
+        }
+        return newTotal
+      })
     } catch (err) {
       setError(err.message)
     }
