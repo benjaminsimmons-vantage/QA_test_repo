@@ -1,6 +1,6 @@
 # DealFlow CRM
 
-A deal pipeline management application built with Python/FastAPI and React. Designed as a QA automation test target — the codebase contains intentional bugs, design flaws, and edge cases across security, logic, data integrity, and UI layers.
+A deal pipeline management application built with Python/FastAPI and React.
 
 ## Architecture
 

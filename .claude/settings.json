@@ -7,7 +7,7 @@
       }
     }
   },
-  "enabledPlugins": [
-    "mattpocock-skills"
-  ]
+  "enabledPlugins": {
+    "mattpocock-skills": true
+  }
 }
