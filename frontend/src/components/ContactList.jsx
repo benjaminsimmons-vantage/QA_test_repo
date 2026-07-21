@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 
+const PER_PAGE = 20
+
 export default function ContactList() {
   const [contacts, setContacts] = useState([])
   const [total, setTotal] = useState(0)
@@ -11,13 +13,15 @@ export default function ContactList() {
   const [showCreate, setShowCreate] = useState(false)
   const [error, setError] = useState('')
 
+  const pageCount = Math.ceil(total / PER_PAGE) || 1
+
   useEffect(() => {
     loadContacts()
   }, [page])  // BUG: search not in dependency array — changing search doesn't reload
 
   const loadContacts = async () => {
     try {
-      const response = await api.listContacts({ page, search, per_page: 20 })
+      const response = await api.listContacts({ page, search, per_page: PER_PAGE })
       setContacts(response.contacts)
       setTotal(response.total)
     } catch (err) {
@@ -115,11 +119,10 @@ export default function ContactList() {
         >
           Previous
         </button>
-        <span>Page {page} of {Math.ceil(total / 20) || 1}</span>
+        <span>Page {page} of {pageCount}</span>
         <button
           className="btn btn-secondary"
-          // BUG: uses total instead of Math.ceil(total / 20) for max page check
-          disabled={page >= total}
+          disabled={page >= pageCount}
           onClick={() => setPage(p => p + 1)}
         >
           Next
