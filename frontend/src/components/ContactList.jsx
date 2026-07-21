@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 
+const PAGE_SIZE = 20
+
 export default function ContactList() {
   const [contacts, setContacts] = useState([])
   const [total, setTotal] = useState(0)
@@ -13,11 +15,11 @@ export default function ContactList() {
 
   useEffect(() => {
     loadContacts()
-  }, [page])  // BUG: search not in dependency array — changing search doesn't reload
+  }, [page, search])
 
   const loadContacts = async () => {
     try {
-      const response = await api.listContacts({ page, search, per_page: 20 })
+      const response = await api.listContacts({ page, search, per_page: PAGE_SIZE })
       setContacts(response.contacts)
       setTotal(response.total)
     } catch (err) {
@@ -29,8 +31,7 @@ export default function ContactList() {
 
   const handleSearch = (e) => {
     e.preventDefault()
-    // BUG: doesn't reset to page 1 when searching — may show empty results
-    loadContacts()
+    setPage(1)
   }
 
   const handleDelete = async (contactId) => {
@@ -38,8 +39,13 @@ export default function ContactList() {
 
     try {
       await api.deleteContact(contactId)
-      // BUG: removes from local state but doesn't update total count
-      setContacts(prev => prev.filter(c => c.id !== contactId))
+      const newTotal = total - 1
+      const newTotalPages = Math.ceil(newTotal / PAGE_SIZE) || 1
+      if (page > newTotalPages) {
+        setPage(newTotalPages)
+      } else {
+        loadContacts()
+      }
     } catch (err) {
       setError(err.message)
     }
@@ -115,11 +121,10 @@ export default function ContactList() {
         >
           Previous
         </button>
-        <span>Page {page} of {Math.ceil(total / 20) || 1}</span>
+        <span>Page {page} of {Math.ceil(total / PAGE_SIZE) || 1}</span>
         <button
           className="btn btn-secondary"
-          // BUG: uses total instead of Math.ceil(total / 20) for max page check
-          disabled={page >= total}
+          disabled={page >= (Math.ceil(total / PAGE_SIZE) || 1)}
           onClick={() => setPage(p => p + 1)}
         >
           Next
