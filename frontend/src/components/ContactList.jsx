@@ -9,6 +9,7 @@ export default function ContactList() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [submittedSearch, setSubmittedSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [error, setError] = useState('')
@@ -17,11 +18,11 @@ export default function ContactList() {
 
   useEffect(() => {
     loadContacts()
-  }, [page])  // BUG: search not in dependency array — changing search doesn't reload
+  }, [page, submittedSearch])
 
   const loadContacts = async () => {
     try {
-      const response = await api.listContacts({ page, search, per_page: PER_PAGE })
+      const response = await api.listContacts({ page, search: submittedSearch, per_page: PER_PAGE })
       setContacts(response.contacts)
       setTotal(response.total)
     } catch (err) {
@@ -33,8 +34,8 @@ export default function ContactList() {
 
   const handleSearch = (e) => {
     e.preventDefault()
-    // BUG: doesn't reset to page 1 when searching — may show empty results
-    loadContacts()
+    setPage(1)
+    setSubmittedSearch(search)
   }
 
   const handleDelete = async (contactId) => {
