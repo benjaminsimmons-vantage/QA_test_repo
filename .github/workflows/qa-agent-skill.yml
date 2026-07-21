@@ -57,7 +57,36 @@ jobs:
           DISABLE_AUTOUPDATER: "1"
           GH_TOKEN: ${{ github.token }}
         run: |
-          claude -p "Run /${{ github.event.client_payload.skill }} on issue #${{ github.event.client_payload.issue_number }}. This is an automated CI run — do not ask the user any questions or wait for confirmation. Follow the skill instructions exactly." \
+          claude -p "Run /${{ github.event.client_payload.skill }} on issue #${{ github.event.client_payload.issue_number }}. This is an automated CI run — do not ask the user any questions or wait for confirmation. Follow the skill instructions exactly.
+
+          GOAL (exit criterion): this session is complete ONLY when issue #${{ github.event.client_payload.issue_number }} carries the correct pipeline label for /${{ github.event.client_payload.skill }} — triage applies a state label (e.g. ready-for-agent, needs-info, ready-for-human, wontfix); to-spec applies 'spec'; to-tickets applies 'ticketed'; implement applies 'in-progress'. As your FINAL action, run 'gh issue view ${{ github.event.client_payload.issue_number }} --json labels' and confirm the label is present. If it is missing, apply it with 'gh issue edit ${{ github.event.client_payload.issue_number }} --add-label <label>' before ending the session." \
             --model opus \
             --dangerously-skip-permissions \
             --output-format json
+
+      - name: Verify pipeline label was applied
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SKILL="${{ github.event.client_payload.skill }}"
+          ISSUE="${{ github.event.client_payload.issue_number }}"
+          LABELS=$(gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
+          echo "Issue #$ISSUE labels after /$SKILL:"; echo "$LABELS"
+          case "$SKILL" in
+            triage)
+              echo "$LABELS" | grep -Eqx 'needs-triage|needs-info|ready-for-agent|ready-for-human|wontfix' \
+                || { echo "::error::/triage did not apply a state label to issue #$ISSUE"; exit 1; } ;;
+            to-spec)
+              echo "$LABELS" | grep -qx 'spec' \
+                || { echo "::error::/to-spec did not apply the 'spec' label to issue #$ISSUE"; exit 1; } ;;
+            to-tickets)
+              echo "$LABELS" | grep -qx 'ticketed' \
+                || { echo "::error::/to-tickets did not apply the 'ticketed' label to issue #$ISSUE"; exit 1; } ;;
+            implement)
+              echo "$LABELS" | grep -qx 'in-progress' \
+                || { echo "::error::/implement did not apply the 'in-progress' label to issue #$ISSUE"; exit 1; } ;;
+            *)
+              echo "Unknown skill '$SKILL' — skipping label verification" ;;
+          esac
+          echo "Label verification passed for /$SKILL on issue #$ISSUE"
