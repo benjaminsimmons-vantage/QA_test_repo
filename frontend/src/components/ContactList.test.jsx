@@ -26,7 +26,7 @@ describe('ContactList pagination', () => {
   })
 
   it('disables both buttons and shows "Page 1 of 1" with zero contacts', async () => {
-    api.listContacts.mockResolvedValue({ contacts: [], total: 0, page: 1, per_page: PER_PAGE })
+    api.listContacts.mockResolvedValue({ contacts: [], total: 0, page: 1, per_page: PER_PAGE, total_pages: 1 })
 
     renderContactList()
 
@@ -47,7 +47,7 @@ describe('ContactList pagination', () => {
       company: 'Acme',
       deal_count: 0,
     }))
-    api.listContacts.mockResolvedValue({ contacts, total: 5, page: 1, per_page: PER_PAGE })
+    api.listContacts.mockResolvedValue({ contacts, total: 5, page: 1, per_page: PER_PAGE, total_pages: 1 })
 
     renderContactList()
 
@@ -65,7 +65,7 @@ describe('ContactList pagination', () => {
       company: 'Acme',
       deal_count: 0,
     }))
-    api.listContacts.mockResolvedValue({ contacts, total: PER_PAGE + 5, page: 1, per_page: PER_PAGE })
+    api.listContacts.mockResolvedValue({ contacts, total: PER_PAGE + 5, page: 1, per_page: PER_PAGE, total_pages: 2 })
 
     renderContactList()
 
@@ -93,8 +93,8 @@ describe('ContactList pagination', () => {
     }))
     const total = PER_PAGE + 5
     api.listContacts
-      .mockResolvedValueOnce({ contacts: page1Contacts, total, page: 1, per_page: PER_PAGE })
-      .mockResolvedValueOnce({ contacts: page2Contacts, total, page: 2, per_page: PER_PAGE })
+      .mockResolvedValueOnce({ contacts: page1Contacts, total, page: 1, per_page: PER_PAGE, total_pages: 2 })
+      .mockResolvedValueOnce({ contacts: page2Contacts, total, page: 2, per_page: PER_PAGE, total_pages: 2 })
 
     renderContactList()
 
@@ -108,7 +108,7 @@ describe('ContactList pagination', () => {
   })
 
   it('uses PER_PAGE constant in the API call', async () => {
-    api.listContacts.mockResolvedValue({ contacts: [], total: 0, page: 1, per_page: PER_PAGE })
+    api.listContacts.mockResolvedValue({ contacts: [], total: 0, page: 1, per_page: PER_PAGE, total_pages: 1 })
 
     renderContactList()
 

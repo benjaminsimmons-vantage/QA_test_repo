@@ -7,6 +7,7 @@ export const PER_PAGE = 20
 export default function ContactList() {
   const [contacts, setContacts] = useState([])
   const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -22,6 +23,7 @@ export default function ContactList() {
       const response = await api.listContacts({ page, search, per_page: PER_PAGE })
       setContacts(response.contacts)
       setTotal(response.total)
+      setTotalPages(response.total_pages)
     } catch (err) {
       setError('Failed to load contacts')
     } finally {
@@ -117,10 +119,10 @@ export default function ContactList() {
         >
           Previous
         </button>
-        <span>Page {page} of {Math.ceil(total / PER_PAGE) || 1}</span>
+        <span>Page {page} of {totalPages}</span>
         <button
           className="btn btn-secondary"
-          disabled={page >= Math.ceil(total / PER_PAGE)}
+          disabled={page >= totalPages}
           onClick={() => setPage(p => p + 1)}
         >
           Next

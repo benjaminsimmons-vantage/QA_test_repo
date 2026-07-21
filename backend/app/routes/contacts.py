@@ -1,3 +1,5 @@
+import math
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -43,6 +45,11 @@ def list_contacts(
         )
 
     total = query.count()
+    total_pages = max(1, math.ceil(total / per_page))
+
+    if page > total_pages:
+        page = total_pages
+
     offset = (page - 1) * per_page
     contacts = query.offset(offset).limit(per_page).all()
 
@@ -62,6 +69,7 @@ def list_contacts(
         "total": total,
         "page": page,
         "per_page": per_page,
+        "total_pages": total_pages,
     }
 
 
