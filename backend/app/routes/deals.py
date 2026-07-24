@@ -77,9 +77,7 @@ def list_deals(
 
     total = query.count()
 
-    # BUG: off-by-one — page 2 skips one deal
-    # Should be (page - 1) * per_page, but uses page * per_page for offset
-    offset = page * per_page if page > 1 else 0
+    offset = (page - 1) * per_page
     deals = query.offset(offset).limit(per_page).all()
 
     return {
@@ -105,8 +103,7 @@ def list_deals(
         "total": total,
         "page": page,
         "per_page": per_page,
-        # BUG: total_pages calculation uses integer division, off by one when not evenly divisible
-        "total_pages": total // per_page,
+        "total_pages": max(1, -(-total // per_page)),
     }
 
 
