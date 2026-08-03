@@ -18,11 +18,9 @@ def get_dashboard_summary(
     total_deals = db.query(Deal).count()
     total_contacts = db.query(Contact).count()
 
-    # BUG: counts closed_won deals' value but also includes closed_lost deals
-    # because the filter only checks for 'closed' prefix
     won_revenue = (
         db.query(func.sum(Deal.value))
-        .filter(Deal.stage.like("closed%"))
+        .filter(Deal.stage == "closed_won")
         .scalar()
     ) or 0
 
