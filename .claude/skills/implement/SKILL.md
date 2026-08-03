@@ -1,0 +1,84 @@
+---
+name: implement
+description: "Implement all sub-issues of a parent issue in dependency order on a single branch."
+disable-model-invocation: true
+---
+
+Implement the work described by the parent issue's sub-issues, in dependency order.
+
+## Scope
+
+This skill is dispatched **once per parent issue**. It handles all sub-issues — do not dispatch it on individual child tickets.
+
+## Strict compliance rules
+
+These rules are non-negotiable. Violating any of them means the implementation is wrong, even if tests pass.
+
+1. **The sub-issue is the spec.** Implement exactly what the sub-issue's "What to build" section says. Do not substitute alternative approaches, workarounds, or "cleaner" solutions. If the sub-issue says "fix seed data," fix the seed data — do not make comparisons case-insensitive instead. If the sub-issue says "normalize on write," add normalization at the write path — do not add normalization at the read path.
+2. **Every acceptance criterion must be satisfied literally.** Before closing a sub-issue, check each acceptance criterion line by line. If it says "seed script uses lowercase role strings," the seed script must contain lowercase role strings. A passing test is not sufficient — the actual code must match what the criterion describes.
+3. **"What to build" names specific files and layers.** If a sub-issue says to change the backend, change the backend. If it says to change the seed data, change the seed data. If it says to add integration tests, add integration tests (not unit tests, not frontend tests). Do not shift work from one layer to another.
+4. **Do not close a sub-issue until every acceptance criterion is met in the code.** Re-read each criterion and verify the diff satisfies it before running `gh issue close`.
+
+## Process
+
+### 1. Gather sub-issues
+
+Fetch all sub-issues of the parent issue:
+```bash
+gh api repos/{owner}/{repo}/issues/{parent_number}/sub_issues
+```
+
+Read each sub-issue's body. Parse the **"Blocked by"** section to build a dependency graph.
+
+### 2. Topologically sort
+
+Sort the sub-issues so that a ticket is implemented only after all tickets it depends on are complete. Tickets with no blockers come first.
+
+### 3. Create a single branch
+
+Create one branch named `fix/<slug>-<issue-number>` where `<issue-number>` is the **parent** issue number (e.g. `fix/admin-users-tab-access-8`). All commits go on this one branch — do NOT create additional branches.
+
+Apply the `in-progress` label to the **parent** issue. Remove the `ticketed` label if present.
+
+### 4. Implement each sub-issue in order
+
+For each sub-issue in dependency order:
+
+1. Read the sub-issue's "What to build" and acceptance criteria **carefully** — these are your requirements, not suggestions
+2. Implement the changes described, in the files and layers specified
+3. Before committing, re-read every acceptance criterion and verify your diff satisfies each one literally
+4. Run typechecking and relevant tests after each sub-issue's changes
+5. Commit with a message referencing the sub-issue: `fix: <description> (#<sub-issue-number>)`
+6. Close the sub-issue: `gh issue close <sub-issue-number>`
+
+Use /tdd where possible, at pre-agreed seams.
+
+### 5. Verify the change is complete and correct
+
+Before opening the PR, make sure the implementation stands on its own:
+
+1. Re-read every acceptance criterion across all sub-issues and confirm the diff satisfies each one literally.
+2. Confirm the change is self-consistent — no half-applied edits, no references to code you did not add, no obviously broken call sites.
+
+Deterministic verification (tests, lint, typecheck, build) is delegated to the **repository's own PR CI**, which runs automatically when the PR opens. Do NOT install the repository's dependencies or run the app yourself. Your job is to make the change complete and correct; the repo's CI is the gate that confirms it.
+
+### 6. Open one PR
+
+Open a single pull request from the branch. The PR body should:
+- Reference the parent issue: `Closes #<parent-number>`
+- List each sub-issue that was implemented
+- Summarize the changes
+
+```bash
+gh pr create --title "<short description>" --body "Closes #<parent-number>
+
+## Sub-issues resolved
+- #<sub-1> — <title>
+- #<sub-2> — <title>
+
+## Summary
+<what changed>
+..."
+```
+
+Once the PR is open, the repository's CI (tests, lint, typecheck) is the gate that verifies the fix. The skill's job ends at opening the PR.

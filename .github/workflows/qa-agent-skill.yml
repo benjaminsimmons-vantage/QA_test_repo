@@ -1,0 +1,152 @@
+name: QA Agent - Run Skill
+
+on:
+  repository_dispatch:
+    types: [run-skill]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  run-skill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Base all work (and any PRs the skill opens) on the configured
+          # working branch, falling back to the repo's default branch.
+          ref: ${{ github.event.client_payload.base_branch || github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # Repo-agnostic: no project build/dependency/app-start steps are hardcoded
+      # here. /triage, /to-spec and /to-tickets operate purely on GitHub issues
+      # and need nothing built. If /implement needs to install deps, build, test
+      # or run the app, Claude discovers the commands from the repo's own docs
+      # (see the "Run skill" prompt) — this workflow assumes no language, package
+      # manager or framework.
+
+      - name: Ensure pipeline labels exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Idempotent: creates the label, or updates it if present (--force).
+          # Mirrors PIPELINE_LABELS in qa_agent/services/claude_runner.py so the
+          # skill can always apply a pipeline label even if repo labels drifted.
+          ensure() { gh label create "$1" --repo "$GITHUB_REPOSITORY" --color "$2" --description "$3" --force; }
+          ensure needs-triage    fbca04 "Maintainer needs to evaluate this issue"
+          ensure needs-info      d4c5f9 "Waiting on reporter for more information"
+          ensure ready-for-agent 0e8a16 "Fully specified, ready for an AFK agent"
+          ensure ready-for-human 1d76db "Requires human implementation"
+          ensure wontfix         ffffff "Will not be actioned"
+          ensure spec            5319e7 "Spec written by /to-spec"
+          ensure ticketed        006b75 "Broken into sub-issues by /to-tickets"
+          ensure in-progress     0e8a16 "Implementation in progress by /implement"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Run skill
+        env:
+          CLAUDE_CODE_USE_FOUNDRY: "1"
+          ANTHROPIC_FOUNDRY_RESOURCE: ${{ secrets.ANTHROPIC_FOUNDRY_RESOURCE }}
+          ANTHROPIC_FOUNDRY_API_KEY: ${{ secrets.ANTHROPIC_FOUNDRY_API_KEY }}
+          ANTHROPIC_DEFAULT_OPUS_MODEL: claude-opus-4-6
+          ANTHROPIC_DEFAULT_SONNET_MODEL: claude-sonnet-4-6
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: claude-haiku-4-5
+          DISABLE_AUTOUPDATER: "1"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Capture the CLI's JSON result so the next step can self-report token
+          # cost to the QA Agent. pipefail keeps claude's real exit code through tee.
+          set -o pipefail
+          claude -p "Run /${{ github.event.client_payload.skill }} on issue #${{ github.event.client_payload.issue_number }}. This is an automated CI run — do not ask the user any questions or wait for confirmation. Follow the skill instructions exactly. Do NOT install the repository's dependencies or run the app; deterministic verification is delegated to the repository's own PR CI once the PR opens. Use the repository's README, CLAUDE.md, or AGENTS.md only to understand project conventions and required changes. Any branch you create and any pull request you open MUST be based on '${{ github.event.client_payload.base_branch || github.event.repository.default_branch }}' (the currently checked-out branch), not on the default branch unless they are the same." \
+
+          GOAL (exit criterion): this session is complete ONLY when issue #${{ github.event.client_payload.issue_number }} carries the correct pipeline label for /${{ github.event.client_payload.skill }} — triage applies a state label (e.g. ready-for-agent, needs-info, ready-for-human, wontfix); to-spec applies 'spec'; to-tickets applies 'ticketed'; implement applies 'in-progress'. As your FINAL action, run 'gh issue view ${{ github.event.client_payload.issue_number }} --json labels' and confirm the label is present. If it is missing, apply it with 'gh issue edit ${{ github.event.client_payload.issue_number }} --add-label <label>' before ending the session." \
+            --model opus \
+            --dangerously-skip-permissions \
+            --output-format json | tee "$RUNNER_TEMP/claude_result.json"
+
+      - name: Report token cost to QA Agent
+        # Best-effort cost self-report — never fails the run. Cost only: the QA
+        # Agent backend writes tokens/cost onto the Run but can never set CI
+        # conclusion or PR state from this callback (those come from GitHub).
+        # Skipped unless the repo is configured with the callback URL secret.
+        if: ${{ always() }}
+        env:
+          CALLBACK_URL: ${{ secrets.QA_AGENT_CALLBACK_URL }}
+          CALLBACK_TOKEN: ${{ secrets.QA_AGENT_CALLBACK_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          ISSUE: ${{ github.event.client_payload.issue_number }}
+        run: |
+          set -uo pipefail
+          if [ -z "${CALLBACK_URL:-}" ]; then
+            echo "QA_AGENT_CALLBACK_URL not set — skipping cost report"; exit 0
+          fi
+          RESULT="${RUNNER_TEMP}/claude_result.json"
+          if [ ! -f "$RESULT" ]; then
+            echo "No CLI result file — skipping cost report"; exit 0
+          fi
+          # `claude -p --output-format json` emits one result object carrying
+          # total_cost_usd and a usage block with input/output token counts.
+          TOKENS_IN=$(jq -r '.usage.input_tokens // empty' "$RESULT" 2>/dev/null || echo "")
+          TOKENS_OUT=$(jq -r '.usage.output_tokens // empty' "$RESULT" 2>/dev/null || echo "")
+          COST=$(jq -r '.total_cost_usd // empty' "$RESULT" 2>/dev/null || echo "")
+          # The run's PR, if one is open, lives on the deterministic head branch.
+          PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" \
+            --head "qa-agent/issue-${ISSUE}" --state all \
+            --json number --jq '.[0].number // empty' 2>/dev/null || echo "")
+          PAYLOAD=$(jq -n \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --argjson run_id "$RUN_ID" \
+            --arg pr "$PR_NUMBER" \
+            --arg ti "$TOKENS_IN" \
+            --arg to "$TOKENS_OUT" \
+            --arg cost "$COST" \
+            '{repository: $repo, github_run_id: $run_id}
+             + (if $pr   != "" then {pr_number:  ($pr   | tonumber)} else {} end)
+             + (if $ti   != "" then {tokens_in:  ($ti   | tonumber)} else {} end)
+             + (if $to   != "" then {tokens_out: ($to   | tonumber)} else {} end)
+             + (if $cost != "" then {cost_usd:   ($cost | tonumber)} else {} end)')
+          echo "Reporting run cost to QA Agent: $PAYLOAD"
+          curl -sS -X POST "$CALLBACK_URL" \
+            -H "Authorization: Bearer ${CALLBACK_TOKEN:-}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            || echo "Cost callback failed (non-fatal)"
+
+      - name: Verify pipeline label was applied
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SKILL="${{ github.event.client_payload.skill }}"
+          ISSUE="${{ github.event.client_payload.issue_number }}"
+          LABELS=$(gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
+          echo "Issue #$ISSUE labels after /$SKILL:"; echo "$LABELS"
+          case "$SKILL" in
+            triage)
+              echo "$LABELS" | grep -Eqx 'needs-triage|needs-info|ready-for-agent|ready-for-human|wontfix' \
+                || { echo "::error::/triage did not apply a state label to issue #$ISSUE"; exit 1; } ;;
+            to-spec)
+              echo "$LABELS" | grep -qx 'spec' \
+                || { echo "::error::/to-spec did not apply the 'spec' label to issue #$ISSUE"; exit 1; } ;;
+            to-tickets)
+              echo "$LABELS" | grep -qx 'ticketed' \
+                || { echo "::error::/to-tickets did not apply the 'ticketed' label to issue #$ISSUE"; exit 1; } ;;
+            implement)
+              echo "$LABELS" | grep -qx 'in-progress' \
+                || { echo "::error::/implement did not apply the 'in-progress' label to issue #$ISSUE"; exit 1; } ;;
+            *)
+              echo "Unknown skill '$SKILL' — skipping label verification" ;;
+          esac
+          echo "Label verification passed for /$SKILL on issue #$ISSUE"
